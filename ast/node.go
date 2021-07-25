@@ -79,7 +79,7 @@ func (self *Node) Type() int {
     return int(self.t & _MASK_LAZY & _MASK_RAW)
 }
 
-func (self *Node) itype() types.ValueType {
+func (self *Node) Itype() types.ValueType {
     return self.t & _MASK_LAZY & _MASK_RAW
 }
 
@@ -449,7 +449,7 @@ func (self *Pair) unsafe_next() *Pair {
 
 func (self *Node) must(t types.ValueType, s string) {
     self.checkRaw()
-    if self.itype() != t {
+    if self.Itype() != t {
         panic("value cannot be represented as " + s)
     }
 }

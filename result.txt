@@ -1,0 +1,2 @@
+BenchmarkUnmarshalStructAndInterface/struct-16         	   51267	     22460 ns/op	 580.37 MB/s	   14914 B/op	       5 allocs/op
+BenchmarkUnmarshalStructAndInterface/interface-16      	  494678	      2251 ns/op	5789.64 MB/s	   13584 B/op	       2 allocs/op

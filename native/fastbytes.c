@@ -16,27 +16,34 @@
 
 #include "native.h"
 
-static inline int is_zero_sse(__m128i v) {
+static inline int is_zero_sse(__m128i v)
+{
     return _mm_testz_si128(v, v);
 }
 
 #if USE_AVX
-static inline int is_zero_avx(__m256i v) {
+static inline int is_zero_avx(__m256i v)
+{
     return _mm256_testz_si256(v, v);
 }
 #endif
 
-size_t lzero(const char *sp, size_t nb) {
-    size_t       n = nb;
-    const char * p = sp;
+size_t lzero(const char *sp, size_t nb)
+{
+    size_t n = nb;
+    const char *p = sp;
 
 #if USE_AVX
     /* 32-byte loop */
-    while (n >= 32) {
-        if (!is_zero_avx(_mm256_loadu_si256((const void *)p))) {
+    while (n >= 32)
+    {
+        if (!is_zero_avx(_mm256_loadu_si256((const void *)p)))
+        {
             _mm256_zeroupper();
             return 1;
-        } else {
+        }
+        else
+        {
             p += 32;
             n -= 32;
         }
@@ -47,49 +54,68 @@ size_t lzero(const char *sp, size_t nb) {
 #endif
 
     /* 16-byte loop */
-    while (n >= 16) {
-        if (!is_zero_sse(_mm_loadu_si128((const void *)p))) {
+    while (n >= 16)
+    {
+        if (!is_zero_sse(_mm_loadu_si128((const void *)p)))
+        {
             return 1;
-        } else {
+        }
+        else
+        {
             p += 16;
             n -= 16;
         }
     }
 
     /* 8-byte test */
-    if (n >= 8) {
-        if (*(uint64_t *)p) {
+    if (n >= 8)
+    {
+        if (*(uint64_t *)p)
+        {
             return 1;
-        } else {
+        }
+        else
+        {
             p += 8;
             n -= 8;
         }
     }
 
     /* 4-byte test */
-    if (n >= 4) {
-        if (*(uint32_t *)p) {
+    if (n >= 4)
+    {
+        if (*(uint32_t *)p)
+        {
             return 1;
-        } else {
+        }
+        else
+        {
             p += 4;
             n -= 4;
         }
     }
 
     /* 2-byte test */
-    if (n >= 2) {
-        if (*(uint16_t *)p) {
+    if (n >= 2)
+    {
+        if (*(uint16_t *)p)
+        {
             return 1;
-        } else {
+        }
+        else
+        {
             p += 2;
             n -= 2;
         }
     }
 
     /* the final byte */
-    if (n == 0) {
+    if (n == 0)
+    {
         return 0;
-    } else {
+    }
+    else
+    {
         return *p != 0;
     }
 }
@@ -100,39 +126,63 @@ static const uintptr_t ALIGN_MASK = 31;
 static const uintptr_t ALIGN_MASK = 15;
 #endif
 
-size_t lspace(const char *sp, size_t nb, size_t p) {
-    int32_t      ms;
-    const char * ss = sp;
+long charAt(const char *sp, size_t nb, char c)
+{
+    long ret = -1;
+    for (long i = 0; i < nb; i++)
+    {
+        if (sp[i] == c)
+        {
+            ret = i;
+            break;
+        }
+    }
+    return ret;
+}
+
+size_t lspace(const char *sp, size_t nb, size_t p)
+{
+    int32_t ms;
+    const char *ss = sp;
 
     /* seek to `p` */
     sp += p;
     nb -= p;
 
     /* likely to run into non-spaces within a few characters, try scalar code first */
-    while (nb > 0 && ((uintptr_t)sp & ALIGN_MASK)) {
-        switch ((nb--, *sp++)) {
-            case ' '  : break;
-            case '\r' : break;
-            case '\n' : break;
-            case '\t' : break;
-            default   : return sp - ss - 1;
+    while (nb > 0 && ((uintptr_t)sp & ALIGN_MASK))
+    {
+        switch ((nb--, *sp++))
+        {
+        case ' ':
+            break;
+        case '\r':
+            break;
+        case '\n':
+            break;
+        case '\t':
+            break;
+        default:
+            return sp - ss - 1;
         }
     }
 
 #if USE_AVX2
     /* 32-byte loop */
-    while (likely(nb >= 32)) {
-        __m256i x = _mm256_load_si256 ((const void *)sp);
-        __m256i a = _mm256_cmpeq_epi8 (x, _mm256_set1_epi8(' '));
-        __m256i b = _mm256_cmpeq_epi8 (x, _mm256_set1_epi8('\t'));
-        __m256i c = _mm256_cmpeq_epi8 (x, _mm256_set1_epi8('\n'));
-        __m256i d = _mm256_cmpeq_epi8 (x, _mm256_set1_epi8('\r'));
-        __m256i u = _mm256_or_si256   (a, b);
-        __m256i v = _mm256_or_si256   (c, d);
-        __m256i w = _mm256_or_si256   (u, v);
+    while (likely(nb >= 32))
+    {
+        __m256i x = _mm256_load_si256((const void *)sp);
+        __m256i a = _mm256_cmpeq_epi8(x, _mm256_set1_epi8(' '));
+        __m256i b = _mm256_cmpeq_epi8(x, _mm256_set1_epi8('\t'));
+        __m256i c = _mm256_cmpeq_epi8(x, _mm256_set1_epi8('\n'));
+        __m256i d = _mm256_cmpeq_epi8(x, _mm256_set1_epi8('\r'));
+        __m256i u = _mm256_or_si256(a, b);
+        __m256i v = _mm256_or_si256(c, d);
+        __m256i w = _mm256_or_si256(u, v);
 
         /* check for matches */
-        if ((ms = _mm256_movemask_epi8(w)) != -1) {
+        if ((ms = _mm256_movemask_epi8(w)) != -1)
+        {
             _mm256_zeroupper();
             return sp - ss + __builtin_ctzll(~(uint64_t)ms);
         }
@@ -147,18 +197,20 @@ size_t lspace(const char *sp, size_t nb, size_t p) {
 #endif
 
     /* 16-byte loop */
-    while (likely(nb >= 16)) {
-        __m128i x = _mm_load_si128 ((const void *)sp);
-        __m128i a = _mm_cmpeq_epi8 (x, _mm_set1_epi8(' '));
-        __m128i b = _mm_cmpeq_epi8 (x, _mm_set1_epi8('\t'));
-        __m128i c = _mm_cmpeq_epi8 (x, _mm_set1_epi8('\n'));
-        __m128i d = _mm_cmpeq_epi8 (x, _mm_set1_epi8('\r'));
-        __m128i u = _mm_or_si128   (a, b);
-        __m128i v = _mm_or_si128   (c, d);
-        __m128i w = _mm_or_si128   (u, v);
+    while (likely(nb >= 16))
+    {
+        __m128i x = _mm_load_si128((const void *)sp);
+        __m128i a = _mm_cmpeq_epi8(x, _mm_set1_epi8(' '));
+        __m128i b = _mm_cmpeq_epi8(x, _mm_set1_epi8('\t'));
+        __m128i c = _mm_cmpeq_epi8(x, _mm_set1_epi8('\n'));
+        __m128i d = _mm_cmpeq_epi8(x, _mm_set1_epi8('\r'));
+        __m128i u = _mm_or_si128(a, b);
+        __m128i v = _mm_or_si128(c, d);
+        __m128i w = _mm_or_si128(u, v);
 
         /* check for matches */
-        if ((ms = _mm_movemask_epi8(w)) != 0xffff) {
+        if ((ms = _mm_movemask_epi8(w)) != 0xffff)
+        {
             return sp - ss + __builtin_ctz(~ms);
         }
 
@@ -168,13 +220,20 @@ size_t lspace(const char *sp, size_t nb, size_t p) {
     }
 
     /* remaining bytes, do with scalar code */
-    while (nb-- > 0) {
-        switch (*sp++) {
-            case ' '  : break;
-            case '\r' : break;
-            case '\n' : break;
-            case '\t' : break;
-            default   : return sp - ss - 1;
+    while (nb-- > 0)
+    {
+        switch (*sp++)
+        {
+        case ' ':
+            break;
+        case '\r':
+            break;
+        case '\n':
+            break;
+        case '\t':
+            break;
+        default:
+            return sp - ss - 1;
         }
     }
 

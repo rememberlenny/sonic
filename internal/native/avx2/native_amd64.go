@@ -19,9 +19,10 @@
 package avx2
 
 import (
-    `unsafe`
+	"unsafe"
 
-    `github.com/bytedance/sonic/internal/native/types`
+	"github.com/bytedance/sonic/internal/native/types"
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 //go:nosplit
@@ -98,3 +99,13 @@ func __skip_array(s *string, p *int, m *types.StateMachine) (ret int)
 //go:noescape
 //goland:noinspection GoUnusedParameter
 func __skip_object(s *string, p *int, m *types.StateMachine) (ret int)
+
+//go:nosplit
+//go:noescape
+//goland:noinspection GoUnusedParameter
+func __charAt(sp unsafe.Pointer, nb int, c byte) (ret int)
+
+func CharAt(s string, c byte) int {
+	p := (*rt.GoString)(unsafe.Pointer(&s)).Ptr
+	return __charAt(p, len(s), c)
+}

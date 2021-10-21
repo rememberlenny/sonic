@@ -23,6 +23,7 @@ var (
     S_i64toa = _subr__i64toa
     S_u64toa = _subr__u64toa
     S_lspace = _subr__lspace
+    S_charAt = _subr__charAt
 )
 
 var (

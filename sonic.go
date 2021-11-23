@@ -73,11 +73,11 @@ func UnmarshalString(buf string, val interface{}) error {
 }
 
 // Pretouch compiles vt ahead-of-time to avoid JIT compilation on-the-fly, in
-// order to reduce the first-hit latency.
-func Pretouch(vt reflect.Type) error {
-    if err := encoder.Pretouch(vt); err != nil {
+// order to reduce the first-hit latency. Depth is the recursive times.
+func Pretouch(vt reflect.Type, depth ...int) error {
+    if err := encoder.Pretouch(vt, depth...); err != nil {
         return err
-    } else if err = decoder.Pretouch(vt); err != nil {
+    } else if err = decoder.Pretouch(vt, depth...); err != nil {
         return err
     } else {
         return nil

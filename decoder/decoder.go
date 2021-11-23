@@ -105,8 +105,53 @@ func (self *Decoder) DisallowUnknownFields() {
 }
 
 // Pretouch compiles vt ahead-of-time to avoid JIT compilation on-the-fly, in
-// order to reduce the first-hit latency.
-func Pretouch(vt reflect.Type) (err error) {
-    _, err = findOrCompile(rt.UnpackType(vt))
-    return
+// order to reduce the first-hit latency. Depth is the recursive times.
+func Pretouch(vt reflect.Type, depth ...int) (err error) {
+    var dep int
+    for _, arg := range depth {
+        dep = arg
+        break
+    }
+    return pretouchRec(map[reflect.Type]bool{vt:true}, dep)
+}
+
+func pretouchType(_vt reflect.Type) (map[reflect.Type]bool, error) {
+    /* compile function */
+    compiler := newCompiler()
+    encoder := func(vt *rt.GoType) (interface{}, error) {
+        if pp, err := compiler.compile(_vt); err != nil {
+            return nil, err
+        } else {
+            return newAssembler(pp).Load(), nil
+        }
+    }
+
+    /* find or compile */
+    vt := rt.UnpackType(_vt)
+    if val := programCache.Get(vt); val != nil {
+        return nil, nil
+    } else if _, err := programCache.Compute(vt, encoder); err == nil {
+        return compiler.rec, nil
+    } else {
+        return nil, err
+    }
+}
+
+func pretouchRec(vtm map[reflect.Type]bool, depth int) (err error) {
+    if depth < 0 || len(vtm) == 0 {
+        return nil
+    }
+
+    next := make(map[reflect.Type]bool)
+    for vt, _ := range(vtm) {
+        sub, err := pretouchType(vt)
+        if err != nil {
+            return err
+        }
+        for svt, _ := range(sub) {
+            next[svt] = true
+        }
+    }
+
+    return pretouchRec(next, depth - 1)
 }

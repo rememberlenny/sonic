@@ -474,9 +474,17 @@ func (self _Program) disassemble() string {
     return strings.Join(append(ret, "\tend"), "\n")
 }
 
-type (
-	_Compiler map[reflect.Type]bool
-)
+type _Compiler struct {
+    tab map[reflect.Type]bool
+    rec map[reflect.Type]bool
+}
+
+func newCompiler() *_Compiler {
+    return &_Compiler {
+        tab: map[reflect.Type]bool{},
+        rec: map[reflect.Type]bool{},
+    }
+}
 
 func (self _Compiler) rescue(ep *error) {
     if val := recover(); val != nil {
@@ -495,7 +503,7 @@ func (self _Compiler) compile(vt reflect.Type) (ret _Program, err error) {
 }
 
 func (self _Compiler) compileOne(p *_Program, sp int, vt reflect.Type) {
-    ok := self[vt]
+    ok := self.tab[vt]
     pt := reflect.PtrTo(vt)
 
     /* check for recursive nesting */
@@ -533,9 +541,9 @@ func (self _Compiler) compileOne(p *_Program, sp int, vt reflect.Type) {
 
     /* enter the recursion */
     p.add(_OP_lspace)
-    self[vt] = true
+    self.tab[vt] = true
     self.compileOps(p, sp, vt)
-    delete(self, vt)
+    delete(self.tab, vt)
 }
 
 func (self _Compiler) compileOps(p *_Program, sp int, vt reflect.Type) {
@@ -793,6 +801,7 @@ func (self _Compiler) compileStringBody(p *_Program) {
 func (self _Compiler) compileStruct(p *_Program, sp int, vt reflect.Type) {
     if sp >= _MAX_STACK || p.pc() >= _MAX_ILBUF {
         p.rtt(_OP_recurse, vt)
+        self.rec[vt] = true
     } else {
         self.compileStructBody(p, sp, vt)
     }
